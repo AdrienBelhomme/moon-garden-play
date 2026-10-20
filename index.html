@@ -2,7 +2,7 @@
 <html lang="en">
 	<head>
 		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 		<title>Moon Garden</title>
 		<style>
 html, body, #canvas {
@@ -90,15 +90,100 @@ body {
 	z-index: 1;
 }
 		</style>
+		<style>
+html, body { width: 100%; height: 100%; background: #0f0d14; }
+#game-surface {
+ position: fixed; inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+ overflow: hidden;
+}
+#rotate-notice {
+ display: none; position: fixed; inset: 0; z-index: 2;
+ box-sizing: border-box; padding: max(24px, env(safe-area-inset-top)) 28px max(24px, env(safe-area-inset-bottom));
+ background: #0f0d14; color: #fbeedd; text-align: center;
+ font: 18px/1.5 system-ui, sans-serif;
+ flex-direction: column; align-items: center; justify-content: center;
+}
+#rotate-notice h1 { font: 30px/1.2 Georgia, serif; margin: 16px 0; }
+#rotate-notice p { max-width: 28ch; margin: 8px 0; }
+#rotate-notice svg { width: 74px; height: 74px; color: #f2b35a; }
+.fullscreen-button {
+ border: 1px solid #a5814d; border-radius: 24px; padding: 10px 16px;
+ min-height: 44px; color: #fbeedd; background: #201a15; font: 14px system-ui, sans-serif;
+ cursor: pointer; touch-action: manipulation;
+}
+.fullscreen-button[hidden] { display: none; }
+body.menu-open #fullscreen-button { display: none; }
+#fullscreen-button { position: fixed; z-index: 1; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); }
+#rotate-fullscreen { margin-top: 16px; }
+#status-notice { z-index: 3; }
+@media (orientation: portrait) and (pointer: coarse) {
+ #rotate-notice { display: flex; }
+ #fullscreen-button { display: none; }
+}
+@media (display-mode: standalone), (display-mode: fullscreen) {
+ .fullscreen-button { display: none; }
+}
+		</style>
 		<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
 <link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
 <link rel="manifest" href="index.manifest.json">
-<meta name='apple-mobile-web-app-capable' content='yes'><meta name='apple-mobile-web-app-status-bar-style' content='black'><meta name='apple-mobile-web-app-title' content='Moon Garden'><style>body{background-color:#0f0d14}#status-progress{accent-color:#f2b35a;height:10px}</style>
+<meta name='apple-mobile-web-app-capable' content='yes'><meta name='apple-mobile-web-app-status-bar-style' content='black-translucent'><meta name='apple-mobile-web-app-title' content='Moon Garden'><style>body{background-color:#0f0d14}#status-progress{accent-color:#f2b35a;height:10px}</style>
 	</head>
 	<body>
-		<canvas id="canvas">
+		<div id="game-surface">
+		<canvas id="canvas" tabindex="0">
 			Your browser does not support the canvas tag.
 		</canvas>
+		</div>
+		<section id="rotate-notice" aria-labelledby="rotate-title">
+			<svg viewBox="0 0 80 80" fill="none" aria-hidden="true"><rect x="12" y="23" width="56" height="34" rx="7" stroke="currentColor" stroke-width="3"/><path d="M29 12C13 12 5 20 5 32M5 32L2 24M5 32L13 28M51 68C67 68 75 60 75 48M75 48L78 56M75 48L67 52" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+			<h1 id="rotate-title">Turn your phone sideways</h1>
+			<p>Your garden has more room in landscape.</p>
+			<p>If it stays upright, turn off your phone’s rotation lock.</p>
+			<button id="rotate-fullscreen" class="fullscreen-button" type="button" hidden>Play full screen</button>
+		</section>
+		<button id="fullscreen-button" class="fullscreen-button" type="button" hidden aria-label="Play full screen">Full screen</button>
+		<script>
+// Keep Godot's backing canvas inside the iPhone notch and home-indicator insets.
+// Policy 0 lets this shell own sizing; Godot reads the canvas dimensions each frame.
+(() => {
+ const surface = document.getElementById('game-surface');
+ const canvas = document.getElementById('canvas');
+ const buttons = [...document.querySelectorAll('.fullscreen-button')];
+ function resizeCanvas() {
+  const rect = surface.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  const width = Math.max(1, Math.round(rect.width * ratio));
+  const height = Math.max(1, Math.round(rect.height * ratio));
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
+ }
+ function updateFullscreenButtons() {
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  const available = navigator.maxTouchPoints > 0 && document.fullscreenEnabled && !standalone && !document.fullscreenElement;
+  buttons.forEach(button => { button.hidden = !available; });
+ }
+ async function enterFullscreen() {
+  try {
+   if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+   if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+  } catch (_) {
+   // iOS and some browsers require the player to rotate the phone manually.
+  }
+  updateFullscreenButtons();
+  canvas.focus();
+ }
+ buttons.forEach(button => button.addEventListener('click', enterFullscreen));
+ document.addEventListener('fullscreenchange', () => { resizeCanvas(); updateFullscreenButtons(); });
+ window.addEventListener('resize', resizeCanvas);
+ if (window.visualViewport) window.visualViewport.addEventListener('resize', resizeCanvas);
+ new ResizeObserver(resizeCanvas).observe(surface);
+ resizeCanvas();
+ updateFullscreenButtons();
+})();
+		</script>
 
 		<noscript>
 			Your browser does not support JavaScript.
@@ -112,7 +197,7 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":71991332,"index.wasm":37686550},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":71993332,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 

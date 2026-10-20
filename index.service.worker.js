@@ -4,7 +4,7 @@
 // Incrementing CACHE_VERSION will kick off the install event and force
 // previously cached resources to be updated from the network.
 /** @type {string} */
-const CACHE_VERSION = '1792507938|11662536';
+const CACHE_VERSION = '1792509543|4285855';
 /** @type {string} */
 const CACHE_PREFIX = 'Moon Garden-sw-cache-';
 const CACHE_NAME = CACHE_PREFIX + CACHE_VERSION;
