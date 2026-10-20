@@ -263,7 +263,11 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 		const register = () => Promise.resolve().then(() =>
 			navigator.serviceWorker.register(GODOT_CONFIG.serviceWorker));
+		const warmShell = () => {
+			if (navigator.serviceWorker.controller) navigator.serviceWorker.controller.postMessage('cache-shell');
+		};
 		if (navigator.serviceWorker.controller) {
+			warmShell();
 			register().catch(() => {}); // Check for updates without delaying play.
 			return Promise.resolve();
 		}
@@ -274,6 +278,7 @@ const engine = new Engine(GODOT_CONFIG);
 			const finish = () => {
 				clearTimeout(timeout);
 				navigator.serviceWorker.removeEventListener('controllerchange', onControl);
+				warmShell();
 				resolve();
 			};
 			const onControl = () => {
