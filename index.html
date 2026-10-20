@@ -116,6 +116,13 @@ body.menu-open #fullscreen-button { display: none; }
 #fullscreen-button { position: fixed; z-index: 1; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); }
 #rotate-fullscreen { margin-top: 16px; }
 #status-notice { z-index: 3; }
+#status-label, #music-credit {
+ position: absolute; left: 20px; right: 20px; text-align: center;
+ color: #fbeedd; font: 14px/1.4 system-ui, sans-serif;
+}
+#status-label { bottom: 16%; }
+#music-credit { bottom: 2%; font-size: 12px; }
+#music-credit a { color: inherit; }
 @media (orientation: portrait) and (pointer: coarse) {
  #rotate-notice { display: flex; }
  #fullscreen-button { display: none; }
@@ -192,12 +199,14 @@ body.menu-open #fullscreen-button { display: none; }
 		<div id="status">
 			<img id="status-splash" class="show-image--true fullsize--true use-filter--true" src="index.png" alt="">
 			<progress id="status-progress"></progress>
+			<p id="status-label" role="status">Opening your garden…</p>
+			<p id="music-credit">“Sleep” by <a href="https://www.scottbuckley.com.au/library/sleep/" target="_blank" rel="noopener">Scott Buckley</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a> · adapted with fades</p>
 			<div id="status-notice"></div>
 		</div>
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":71993332,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":74574916,"index.wasm":37695054},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4,"serviceWorker":"index.service.worker.js"};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -248,6 +257,34 @@ const engine = new Engine(GODOT_CONFIG);
 		initializing = false;
 	}
 
+	function prepareOfflineCache() {
+		if (!GODOT_CONFIG.serviceWorker || !('serviceWorker' in navigator)) {
+			return Promise.resolve();
+		}
+		const register = () => Promise.resolve().then(() =>
+			navigator.serviceWorker.register(GODOT_CONFIG.serviceWorker));
+		if (navigator.serviceWorker.controller) {
+			register().catch(() => {}); // Check for updates without delaying play.
+			return Promise.resolve();
+		}
+		// Godot normally registers after loading the PCK/WASM, too late to cache
+		// them on the first visit. Wait for control before starting those requests.
+		// Denied storage or a slow install must still allow the online game to run.
+		return new Promise(resolve => {
+			const finish = () => {
+				clearTimeout(timeout);
+				navigator.serviceWorker.removeEventListener('controllerchange', onControl);
+				resolve();
+			};
+			const onControl = () => {
+				if (navigator.serviceWorker.controller) finish();
+			};
+			const timeout = setTimeout(finish, 5000);
+			navigator.serviceWorker.addEventListener('controllerchange', onControl);
+			register().then(onControl).catch(finish);
+		});
+	}
+
 	const missing = Engine.getMissingFeatures({
 		threads: GODOT_THREADS_ENABLED,
 	});
@@ -285,7 +322,9 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 	} else {
 		setStatusMode('progress');
-		engine.startGame({
+		prepareOfflineCache().then(() => engine.startGame({
+			// Registration and its failure handling belong to the shell above.
+			'serviceWorker': '',
 			'onProgress': function (current, total) {
 				if (current > 0 && total > 0) {
 					statusProgress.value = current;
@@ -295,7 +334,7 @@ const engine = new Engine(GODOT_CONFIG);
 					statusProgress.removeAttribute('max');
 				}
 			},
-		}).then(() => {
+		})).then(() => {
 			setStatusMode('hidden');
 		}, displayFailureNotice);
 	}
