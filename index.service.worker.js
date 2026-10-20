@@ -1,16 +1,43 @@
 // Filled by tools/export_web.py. One immutable cache per exported build.
 const CACHE_PREFIX = 'Moon Garden-sw-cache-';
-const CACHE_NAME = CACHE_PREFIX + "5ec36d88c4cdbbfc43bf";
+const CACHE_NAME = CACHE_PREFIX + "bca47ef8f6da4ee0cc9c";
 const SHELL_FILES = ["index.144x144.png", "index.180x180.png", "index.512x512.png", "index.apple-touch-icon.png", "index.audio.position.worklet.js", "index.audio.worklet.js", "index.html", "index.icon.png", "index.js", "index.manifest.json", "index.offline.html", "index.png"];
 const GAME_FILES = ['index.wasm', 'index.pck'];
 const FILES = new Set([...SHELL_FILES, ...GAME_FILES]);
 const BASE = new URL('./', self.location.href);
+let shellWarmup;
+
+function warmShell() {
+	if (!shellWarmup) {
+		shellWarmup = (async () => {
+			const cache = await caches.open(CACHE_NAME);
+			const missing = [];
+			for (const file of SHELL_FILES) {
+				const url = new URL(file, BASE);
+				if (!await cache.match(url)) missing.push(new Request(url, {cache: 'reload'}));
+			}
+			await cache.addAll(missing);
+		})().catch(error => {
+			shellWarmup = null;
+			throw error;
+		});
+	}
+	return shellWarmup;
+}
 
 self.addEventListener('install', event => {
 	// Large files are cached from the game's own requests, never downloaded twice.
 	// Updates wait until existing game windows close, keeping builds consistent.
-	event.waitUntil(caches.open(CACHE_NAME).then(cache =>
-		cache.addAll(SHELL_FILES.map(file => new Request(new URL(file, BASE), {cache: 'reload'})))));
+	// A first visit gets control immediately; shell warming runs alongside the
+	// game download. An update must have its new shell ready before activation.
+	event.waitUntil(self.registration.active ? warmShell() : caches.open(CACHE_NAME));
+});
+
+self.addEventListener('message', event => {
+	if (event.data !== 'cache-shell' || event.origin !== BASE.origin
+		|| !event.source || !event.source.url.startsWith(BASE.href)) return;
+	event.waitUntil(warmShell().catch(error =>
+		console.warn('Moon Garden could not save the offline shell:', error)));
 });
 
 self.addEventListener('activate', event => {

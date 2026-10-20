@@ -1,1 +1,1 @@
-{"source_commit": "6593b0cd14fd3eff8dba7503711b7d336b6101b6", "godot": "4.6.2", "changes": "Sleep music, first-visit offline cache, 0.5-second opening fade"}
+{"source_commit": "36ff7e3b51d75a91c49e544258f5e4483d070d82", "godot": "4.6.2", "changes": "Sleep music, parallel first-visit offline cache, 0.5-second opening fade"}
