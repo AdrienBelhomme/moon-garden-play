@@ -1,1 +1,5 @@
-{"source_commit": "36ff7e3b51d75a91c49e544258f5e4483d070d82", "godot": "4.6.2", "changes": "Sleep music, parallel first-visit offline cache, 0.5-second opening fade"}
+{
+  "source_commit": "0539209c298ecf00674639499bc79791f49ce7fd",
+  "godot": "4.6.2",
+  "changes": "Veille de lune 90-second ambience; soft cat and creature touch, arrival and departure sounds"
+}
