@@ -1,6 +1,6 @@
 // Filled by tools/export_web.py. One immutable cache per exported build.
 const CACHE_PREFIX = 'Moon Garden-sw-cache-';
-const CACHE_NAME = CACHE_PREFIX + "bca47ef8f6da4ee0cc9c";
+const CACHE_NAME = CACHE_PREFIX + "a0e47ba2f1e1573224b7";
 const SHELL_FILES = ["index.144x144.png", "index.180x180.png", "index.512x512.png", "index.apple-touch-icon.png", "index.audio.position.worklet.js", "index.audio.worklet.js", "index.html", "index.icon.png", "index.js", "index.manifest.json", "index.offline.html", "index.png"];
 const GAME_FILES = ['index.wasm', 'index.pck'];
 const FILES = new Set([...SHELL_FILES, ...GAME_FILES]);
